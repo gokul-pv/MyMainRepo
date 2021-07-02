@@ -237,10 +237,10 @@ def visualize_cam(mask, img, alpha=1.0):
 
 
 
-def GradCamView(miscalssified_images,model,classes,layers,Figsize = (23,30),subplotx1 = 9, subplotx2 = 3):
+def GradCamView(miscalssified_images,model,classes,layers,Figsize = (20,20),subplotx1 = 5, subplotx2 = 2):
 
     fig = plt.figure(figsize=Figsize)
-    for i,k in enumerate(miscalssified_images):
+    for i in range(10):
         images1 = [miscalssified_images[i][0].cpu()* STD[:, None, None]+MEAN[:, None, None]]
         images2 =  [miscalssified_images[i][0].cpu()* STD[:, None, None]+MEAN[:, None, None]]
         for j in layers:
@@ -254,7 +254,7 @@ def GradCamView(miscalssified_images,model,classes,layers,Figsize = (23,30),subp
         npimg = grid_image.numpy()
         sub = fig.add_subplot(subplotx1, subplotx2, i+1) 
         plt.imshow(np.transpose(npimg, (1, 2, 0)))
-        sub.set_title('P = '+classes[int(miscalssified_images[i][1])]+" A = "+classes[int(miscalssified_images[i][2])],fontweight="bold",fontsize=18)
+        sub.set_title('P = '+classes[int(miscalssified_images[i][1])]+" A = "+classes[int(miscalssified_images[i][2])],fontweight="bold",fontsize=14)
         sub.axis("off")
         plt.tight_layout()
         fig.subplots_adjust(wspace=0)
