@@ -10,8 +10,11 @@ import copy
 import matplotlib.pyplot as plt
 import cv2
 
-MEAN = torch.tensor([0.485, 0.456, 0.406])
-STD = torch.tensor([0.229, 0.224, 0.225])
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if use_cuda else "cpu")
+
+MEAN = torch.tensor([0.485, 0.456, 0.406]).to(device)
+STD = torch.tensor([0.229, 0.224, 0.225]).to(device)
 
 class AlbumentationTransforms:
 
