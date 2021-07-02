@@ -61,7 +61,7 @@ def imshow(img):
   plt.imshow(np.transpose(npimg, (1, 2, 0)),interpolation='none')
 	
 	
-def data_stats:
+def data_stats():
 	random.seed(42)	
 	
 	transform = transforms.Compose([transforms.ToTensor()])
