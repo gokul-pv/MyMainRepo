@@ -1,11 +1,15 @@
+'''
+Example
+'''
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class Net(nn.Module):
+class sample_net(nn.Module):
 
     def __init__(self):
-        super(Net, self).__init__()
+        super(sample_net, self).__init__()
 
         self.convblock1 = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=(3, 3), stride=1,padding=1, bias=False),       #Input: 32*32*3  Output: 32 * 32 * 16    RF = 3
@@ -80,3 +84,7 @@ class Net(nn.Module):
      
         x = x.view(-1, 10)
         return x
+
+
+def exampleNet():
+  return sample_net()
