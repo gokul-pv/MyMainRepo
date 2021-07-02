@@ -3,7 +3,8 @@ import albumentations as A
 import albumentations.pytorch as AP
 import numpy as np
 import random
-import copy.deepcopy
+import copy
+import matplotlib.pyplot as plt
 
 class AlbumentationTransforms:
 
@@ -23,8 +24,8 @@ class AlbumentationTransforms:
 
   
   
-def visualize_augmentations(dataset, idx=0, samples=10, cols=5, transforms):
-  dataset = deepcopy(dataset)
+def visualize_augmentations(dataset,transforms, idx=0, samples=10, cols=5 ):
+  dataset = copy.deepcopy(dataset)
   dataset.transform = transforms
   rows = samples // cols
   figure, ax = plt.subplots(nrows=rows, ncols=cols, figsize=(12, 6))
