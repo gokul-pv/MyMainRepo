@@ -1,154 +1,110 @@
 '''Train CIFAR10 with PyTorch.'''
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
 
+import torch
 import torchvision
 import torchvision.transforms as transforms
+from tqdm import tqdm
 
-import os
-import argparse
+def load(train_transform,test_transform):
+	
 
-from models import *
-from utils import progress_bar
-
-
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
-parser.add_argument('--resume', '-r', action='store_true',
-                    help='resume from checkpoint')
-args = parser.parse_args()
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-
-# Data
-print('==> Preparing data..')
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-trainset = torchvision.datasets.CIFAR10(
-    root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(
-    trainset, batch_size=128, shuffle=True, num_workers=2)
-
-testset = torchvision.datasets.CIFAR10(
-    root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(
-    testset, batch_size=100, shuffle=False, num_workers=2)
-
-classes = ('plane', 'car', 'bird', 'cat', 'deer',
-           'dog', 'frog', 'horse', 'ship', 'truck')
-
-# Model
-print('==> Building model..')
-# net = VGG('VGG19')
-# net = ResNet18()
-# net = PreActResNet18()
-# net = GoogLeNet()
-# net = DenseNet121()
-# net = ResNeXt29_2x64d()
-# net = MobileNet()
-# net = MobileNetV2()
-# net = DPN92()
-# net = ShuffleNetG2()
-# net = SENet18()
-# net = ShuffleNetV2(1)
-# net = EfficientNetB0()
-# net = RegNetX_200MF()
-net = SimpleDLA()
-net = net.to(device)
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
-
-if args.resume:
-    # Load checkpoint.
-    print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt.pth')
-    net.load_state_dict(checkpoint['net'])
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
-
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                      momentum=0.9, weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+	#Get the Train and Test Set
+	trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=train_transform)
+	testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=test_transform)
 
 
-# Training
-def train(epoch):
-    print('\nEpoch: %d' % epoch)
-    net.train()
-    train_loss = 0
-    correct = 0
-    total = 0
-    for batch_idx, (inputs, targets) in enumerate(trainloader):
-        inputs, targets = inputs.to(device), targets.to(device)
-        optimizer.zero_grad()
-        outputs = net(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
+	SEED = 1
 
-        train_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
+	# CUDA?
+	cuda = torch.cuda.is_available()
+	print("CUDA Available?", cuda)
 
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+	# For reproducibility
+	torch.manual_seed(SEED)
+
+	if cuda:
+			torch.cuda.manual_seed(SEED)
+
+	# dataloader arguments - something you'll fetch these from cmdprmt
+	dataloader_args = dict(shuffle=True, batch_size=128, num_workers=4, pin_memory=True) if cuda else dict(shuffle=True, batch_size=64)
+
+	trainloader = torch.utils.data.DataLoader(trainset, **dataloader_args)
+	testloader = torch.utils.data.DataLoader(testset, **dataloader_args)
+
+	classes = ('plane', 'car', 'bird', 'cat',
+    	       'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+	return classes, trainloader, testloader
 
 
-def test(epoch):
-    global best_acc
-    net.eval()
+#Training & Testing Loops
+
+def train(model, device, train_loader, optimizer, criterion, epoch, train_losses, train_accuracy):
+  model.train()
+  
+  correct = 0
+  processed = 0
+  train_loss = 0
+
+  pbar = tqdm(train_loader)
+  for batch_idx, (data, target) in enumerate(pbar):
+    # get samples
+    data, target = data.to(device), target.to(device)
+    
+    # Init
+    optimizer.zero_grad()
+    # In PyTorch, we need to set the gradients to zero before starting to do backpropragation because PyTorch accumulates the gradients on subsequent backward passes. 
+    # Because of this, when you start your training loop, ideally you should zero out the gradients so that you do the parameter update correctly.
+
+    # Predict
+    y_pred = model(data)
+
+    # Calculate loss
+    loss = criterion(y_pred, target)
+    train_loss += loss.item()
+
+    # Backpropagation
+    loss.backward()
+    optimizer.step()
+
+    # Update pbar-tqdm
+    
+    pred = y_pred.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+    correct += pred.eq(target.view_as(pred)).sum().item()
+    processed += len(data)
+
+    pbar.set_description(desc= f'Loss={loss.item()} Batch_id={batch_idx} Accuracy={100*correct/processed:0.2f}')
+
+  train_loss /= len(train_loader.dataset)    
+  train_losses.append(train_loss)
+  train_accuracy.append(100. * correct / len(train_loader.dataset)) 
+
+def test(model, device, criterion, test_loader,test_losses, test_accuracy ):
+    model.eval()
+
     test_loss = 0
     correct = 0
-    total = 0
+
     with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(testloader):
-            inputs, targets = inputs.to(device), targets.to(device)
-            outputs = net(inputs)
-            loss = criterion(outputs, targets)
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+            output = model(data)
+            test_loss += criterion(output, target).item()  # sum up batch loss
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            correct += pred.eq(target.view_as(pred)).sum().item()  
 
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+    test_loss /= len(test_loader.dataset)
+    test_losses.append(test_loss)
+    test_accuracy.append(100. * correct / len(test_loader.dataset))
 
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
+    
+def train_test_loop(model, device, trainloader, testloader,criterion,optimizer, train_losses, train_accuracy, test_losses, test_accuracy,EPOCHS):
+	for epoch in range(EPOCHS):
+	    print("EPOCH:", epoch+1, 'LR:',optimizer.param_groups[0]['lr'])
+	    train(model, device, trainloader, optimizer, criterion, epoch,train_losses,train_accuracy )
+	    # scheduler.step()
+	    test(model, device, criterion, testloader,test_losses, test_accuracy )
 
-    # Save checkpoint.
-    acc = 100.*correct/total
-    if acc > best_acc:
-        print('Saving..')
-        state = {
-            'net': net.state_dict(),
-            'acc': acc,
-            'epoch': epoch,
-        }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt.pth')
-        best_acc = acc
-
-
-for epoch in range(start_epoch, start_epoch+200):
-    train(epoch)
-    test(epoch)
-    scheduler.step()
