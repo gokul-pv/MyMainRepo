@@ -64,9 +64,7 @@ def show_train_data(dataset, classes):
   
   
 
-def evaluate_accuracy(model, device, test_loader):
-    correct = 0
-    total = 0
+def evaluate_accuracy(model, device, test_loader,misclassified_images, correct_pred, total_pred):
     with torch.no_grad():
         for images, labels in testloader:
             images, labels = images.to(device), labels.to(device)
@@ -83,7 +81,12 @@ def evaluate_accuracy(model, device, test_loader):
 
 		
 		
-def show_misclassified_images(model, device, dataset, classes):
+def show_misclassified_images(misclassified_images, classes, correct_pred, total_pred):
+	
+	
+	MEAN = torch.tensor([0.485, 0.456, 0.406])
+        STD = torch.tensor([0.229, 0.224, 0.225])
+  
 	fig = plt.figure(figsize = (10,10))
 	for i in range(10):
 	  sub = fig.add_subplot(5, 2, i+1)
@@ -103,3 +106,27 @@ def show_misclassified_images(model, device, dataset, classes):
 	for classname, correct_count in correct_pred.items():
 	    accuracy = 100 * float(correct_count) / total_pred[classname]
 	    print("Accuracy for class {:5s} is: {:.1f} %".format(classname,accuracy))
+		
+		
+		
+def plot_loss_accurracy(train_losses,train_accuracy, test_losses,  test_accuracy):
+	fig, axs = plt.subplots(2,2,figsize=(15,12))
+	axs[0, 0].plot(train_losses, label='Training Loss')
+	axs[0, 0].grid(linestyle='-.')
+	axs[0, 0].set_title("Training Loss")
+	axs[0, 0].legend()
+
+	axs[1, 0].plot(train_accuracy, label='Training Accuracy')
+	axs[1, 0].grid(linestyle='-.')
+	axs[1, 0].set_title("Training Accuracy")
+	axs[1, 0].legend()
+
+	axs[0, 1].plot(test_losses, label='Test Loss')
+	axs[0, 1].grid(linestyle='-.')
+	axs[0, 1].set_title("Test Loss")
+	axs[0, 1].legend()
+
+	axs[1, 1].plot(test_accuracy, label='Test Accuracy')
+	axs[1, 1].grid(linestyle='-.')
+	axs[1, 1].set_title("Test Accuracy")
+	axs[1, 1].legend()		
