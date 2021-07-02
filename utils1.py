@@ -64,7 +64,7 @@ def show_train_data(dataset, classes):
   
   
 
-def evaluate_accuracy(model, device, test_loader,misclassified_images, correct_pred, total_pred):
+def evaluate_accuracy(model, device, testloader,misclassified_images, correct_pred, total_pred):
     with torch.no_grad():
         for images, labels in testloader:
             images, labels = images.to(device), labels.to(device)
