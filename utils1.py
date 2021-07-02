@@ -1,3 +1,4 @@
+import torch
 from torchvision import transforms
 import albumentations as A
 import albumentations.pytorch as AP
