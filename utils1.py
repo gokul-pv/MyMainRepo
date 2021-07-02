@@ -68,18 +68,18 @@ def evaluate_accuracy(model, device, test_loader):
     correct = 0
     total = 0
     with torch.no_grad():
-	for images, labels in test_loader:
-	    images, labels = images.to(device), labels.to(device)
-	    outputs = model(images)
-	    _, predicted = torch.max(outputs.data, 1)
-	    # collect the correct predictions for each class
-	    for label, prediction in zip(labels, predictions):
-	        if label == prediction:
-                correct_pred[classes[label]] += 1
-	        total_pred[classes[label]] += 1
-	    for i in range(len(predictions)):
-	        if predictions[i]!= labels[i]:
-                misclassified_images.append([images[i], predictions[i], labels[i]])
+        for images, labels in testloader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predictions = torch.max(outputs, 1)
+            # collect the correct predictions for each class
+            for label, prediction in zip(labels, predictions):
+                if label == prediction:
+                    correct_pred[classes[label]] += 1
+                total_pred[classes[label]] += 1
+            for i in range(len(predictions)):
+                if predictions[i]!= labels[i]:
+                    misclassified_images.append([images[i], predictions[i], labels[i]])
 
 		
 		
