@@ -67,3 +67,43 @@ def show_train_data(dataset, classes):
     imshow(torchvision.utils.make_grid(images[index[0:5]],nrow=5,padding=2,scale_each=True),classes[i])  
   
   
+
+def evaluate_accuracy(model, device, test_loader):
+    correct = 0
+    total = 0
+    with torch.no_grad():
+	for images, labels in test_loader:
+	    images, labels = images.to(device), labels.to(device)
+	    outputs = model(images)
+	    _, predicted = torch.max(outputs.data, 1)
+	  # collect the correct predictions for each class
+	for label, prediction in zip(labels, predictions):
+	    if label == prediction:
+		correct_pred[classes[label]] += 1
+	    total_pred[classes[label]] += 1
+	for i in range(len(predictions)):
+	    if predictions[i]!= labels[i]:
+		misclassified_images.append([images[i], predictions[i], labels[i]])
+
+		
+		
+def show_misclassified_images(model, device, dataset, classes):
+	fig = plt.figure(figsize = (10,10))
+	for i in range(10):
+	  sub = fig.add_subplot(5, 2, i+1)
+	  img = misclassified_images[i][0].cpu()
+	  img = img * STD[:, None, None] + MEAN[:, None, None]
+	  # img = img / 2 + 0.5 
+	  npimg = img.numpy()
+	  plt.imshow(np.transpose(npimg,(1, 2, 0)),interpolation='none')
+
+	  sub.set_title("Pred={}, Act={}".format(str(classes[misclassified_images[i][1].data.cpu().numpy()]),
+						 str(classes[misclassified_images[i][2].data.cpu().numpy()])))
+
+	plt.tight_layout()
+	plt.show()
+
+	# print accuracy for each class
+	for classname, correct_count in correct_pred.items():
+	    accuracy = 100 * float(correct_count) / total_pred[classname]
+	    print("Accuracy for class {:5s} is: {:.1f} %".format(classname,accuracy))
