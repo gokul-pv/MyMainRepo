@@ -83,7 +83,7 @@ def train(model, device, train_loader, optimizer, criterion, epoch, train_losses
   train_losses.append(train_loss)
   train_accuracy.append(100. * correct / len(train_loader.dataset)) 
 
-def test(model, device, criterion, test_loader):
+def test(model, device, criterion, test_loader,test_losses, test_accuracy ):
     model.eval()
 
     test_loss = 0
