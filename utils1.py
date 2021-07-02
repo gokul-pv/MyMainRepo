@@ -13,8 +13,8 @@ import cv2
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-MEAN = torch.tensor([0.485, 0.456, 0.406]).to(device)
-STD = torch.tensor([0.229, 0.224, 0.225]).to(device)
+MEAN = torch.tensor([0.485, 0.456, 0.406])
+STD = torch.tensor([0.229, 0.224, 0.225])
 
 class AlbumentationTransforms:
 
@@ -246,7 +246,7 @@ def GradCamView(miscalssified_images,model,classes,layers,Figsize = (23,30),subp
         for j in layers:
                 g = GradCAM(model,j)
                 mask, _= g(miscalssified_images[i][0].clone().unsqueeze_(0))
-                heatmap, result = visualize_cam(mask,miscalssified_images[i][0].clone().unsqueeze_(0)* STD[:, None, None]+MEAN[:, None, None] )
+                heatmap, result = visualize_cam(mask,miscalssified_images[i][0].clone().unsqueeze_(0)* STD[:, None, None].to(device)+MEAN[:, None, None].to(device) )
                 images1.extend([heatmap])
                 images2.extend([result])
         # Ploting the images one by one
