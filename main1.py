@@ -105,3 +105,9 @@ def test(model, device, criterion, test_loader,test_losses, test_accuracy ):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
     
+def train_test_loop(model, device, trainloader, testloader,criterion,optimizer, train_losses, train_accuracy, test_losses, test_accuracy,EPOCHS):
+	for epoch in range(EPOCHS):
+	    print("EPOCH:", epoch+1, 'LR:',optimizer.param_groups[0]['lr'])
+	    train(model, device, trainloader, optimizer, criterion, epoch,train_losses,train_accuracy )
+	    # scheduler.step()
+	    test(model, device, criterion, testloader,test_losses, test_accuracy )
