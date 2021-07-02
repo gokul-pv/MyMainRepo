@@ -83,7 +83,7 @@ def data_stats():
 	print('[Per Channel, standardised stats]')
 	print(' - mean:', np.round(data.mean(axis=(0,1,2))/255, 4))
 	print(' - std:', np.round(data.std(axis=(0,1,2))/255, 4))
-        print(' -classes:', trainset_ex.class_to_idx)
+ 
 	
 	classes = ('plane', 'car', 'bird', 'cat',
     	       'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
