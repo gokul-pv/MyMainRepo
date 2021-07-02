@@ -2,13 +2,17 @@ import torch
 import torchvision
 from torchvision import transforms
 from torchvision.utils import make_grid, save_image
+import torch.nn.functional as F
 
 import albumentations as A
 import albumentations.pytorch as AP
 import numpy as np
-import copy
-import matplotlib.pyplot as plt
 import cv2
+
+import copy
+import random
+import matplotlib.pyplot as plt
+
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
@@ -49,22 +53,49 @@ def visualize_augmentations(dataset,transforms, idx=0, samples=10, cols=5 ):
   plt.tight_layout()
   plt.show()
 
-  
 
-def imshow(img,c ):
+def imshow(img):
 #   img = img / 2 + 0.5     # unnormalize
   npimg = img.numpy()
   fig = plt.figure(figsize=(7,7))
   plt.imshow(np.transpose(npimg, (1, 2, 0)),interpolation='none')
-  plt.title(c)
+	
+	
+def data_stats:
+	random.seed(42)	
+	
+	transform = transforms.Compose([transforms.ToTensor()])
+	trainset_ex = torchvision.datasets.CIFAR10(root='./data', train=True,download=True, transform=transform)
+	testset_ex = torchvision.datasets.CIFAR10(root='./data', train=False,download=True, transform=transform)
+	
+	trainloader_ex = torch.utils.data.DataLoader(trainset_ex, batch_size=4, shuffle=True, num_workers=2)
+	
+	data = np.concatenate((trainset_ex.data, testset_ex.data))
 
+	print('[Whole dataset ]')
+	print(' - Numpy Shape:', data.shape)
+	print(' - min:', np.min(data))
+	print(' - max:', np.max(data))
+	print(' - mean:', np.mean(data))
+	print(' - std:', np.std(data))
+	print(' - var:', np.var(data))
 
-def show_train_data(dataset, classes):	
-  dataiter = iter(dataset)
-  images, labels = dataiter.next()
-  for i in range(10):
-    index = [j for j in range(len(labels)) if labels[j] == i]
-    imshow(torchvision.utils.make_grid(images[index[0:5]],nrow=5,padding=2,scale_each=True),classes[i])  
+	print('[Per Channel, standardised stats]')
+	print(' - mean:', np.round(data.mean(axis=(0,1,2))/255, 4))
+	print(' - std:', np.round(data.std(axis=(0,1,2))/255, 4))
+        print(' -classes:', trainset_ex.class_to_idx)
+	
+	classes = ('plane', 'car', 'bird', 'cat',
+    	       'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+	
+	# get some random training images
+	dataiter = iter(trainloader_ex)
+	images, labels = dataiter.next()
+
+	# show images
+	imshow(torchvision.utils.make_grid(images))
+	# print labels
+	print(' '.join('%5s' % classes[labels[j]] for j in range(4))) 
   
   
 
@@ -132,8 +163,7 @@ def plot_loss_accurracy(train_losses,train_accuracy, test_losses,  test_accuracy
 
 	
 	
-import torch
-import torch.nn.functional as F
+
 class GradCAM:
     """Calculate GradCAM salinecy map.
     Args:
@@ -211,8 +241,6 @@ class GradCAM:
 
 
 # ------------------------------------VISUALIZE_GRADCAM-------------------------------------------------------------
-
-
 def visualize_cam(mask, img, alpha=1.0):
     """Make heatmap from mask and synthesize GradCAM result image using heatmap and img.
     Args:
@@ -234,8 +262,6 @@ def visualize_cam(mask, img, alpha=1.0):
     return heatmap, result
 
 #-------------------------------------------GradCam View (Initialisation)--------------------------------------------
-
-
 
 def GradCamView(miscalssified_images,model,classes,layers,Figsize = (20,20),subplotx1 = 5, subplotx2 = 2):
 
