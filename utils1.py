@@ -85,7 +85,7 @@ def show_misclassified_images(misclassified_images, classes, correct_pred, total
 	
 	
 	MEAN = torch.tensor([0.485, 0.456, 0.406])
-        STD = torch.tensor([0.229, 0.224, 0.225])
+  STD = torch.tensor([0.229, 0.224, 0.225])
   
 	fig = plt.figure(figsize = (10,10))
 	for i in range(10):
