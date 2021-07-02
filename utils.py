@@ -1,124 +1,291 @@
 '''Some helper functions for PyTorch, including:
-    - get_mean_and_std: calculate the mean and std value of dataset.
-    - msr_init: net parameter initialization.
-    - progress_bar: progress bar mimic xlua.progress.
 '''
-import os
-import sys
-import time
-import math
 
-import torch.nn as nn
-import torch.nn.init as init
+import torch
+import torchvision
+from torchvision import transforms
+from torchvision.utils import make_grid, save_image
+import torch.nn.functional as F
 
+import albumentations as A
+import albumentations.pytorch as AP
+import numpy as np
+import cv2
 
-def get_mean_and_std(dataset):
-    '''Compute the mean and std value of dataset.'''
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
-    mean = torch.zeros(3)
-    std = torch.zeros(3)
-    print('==> Computing mean and std..')
-    for inputs, targets in dataloader:
-        for i in range(3):
-            mean[i] += inputs[:,i,:,:].mean()
-            std[i] += inputs[:,i,:,:].std()
-    mean.div_(len(dataset))
-    std.div_(len(dataset))
-    return mean, std
-
-def init_params(net):
-    '''Init layer parameters.'''
-    for m in net.modules():
-        if isinstance(m, nn.Conv2d):
-            init.kaiming_normal(m.weight, mode='fan_out')
-            if m.bias:
-                init.constant(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm2d):
-            init.constant(m.weight, 1)
-            init.constant(m.bias, 0)
-        elif isinstance(m, nn.Linear):
-            init.normal(m.weight, std=1e-3)
-            if m.bias:
-                init.constant(m.bias, 0)
+import copy
+import random
+import matplotlib.pyplot as plt
 
 
-_, term_width = os.popen('stty size', 'r').read().split()
-term_width = int(term_width)
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if use_cuda else "cpu")
 
-TOTAL_BAR_LENGTH = 65.
-last_time = time.time()
-begin_time = last_time
-def progress_bar(current, total, msg=None):
-    global last_time, begin_time
-    if current == 0:
-        begin_time = time.time()  # Reset for new bar.
+MEAN = torch.tensor([0.485, 0.456, 0.406])
+STD = torch.tensor([0.229, 0.224, 0.225])
 
-    cur_len = int(TOTAL_BAR_LENGTH*current/total)
-    rest_len = int(TOTAL_BAR_LENGTH - cur_len) - 1
+class AlbumentationTransforms:
 
-    sys.stdout.write(' [')
-    for i in range(cur_len):
-        sys.stdout.write('=')
-    sys.stdout.write('>')
-    for i in range(rest_len):
-        sys.stdout.write('.')
-    sys.stdout.write(']')
+  """
+  Helper class to create test and train transforms using Albumentations
+  """
 
-    cur_time = time.time()
-    step_time = cur_time - last_time
-    last_time = cur_time
-    tot_time = cur_time - begin_time
+  def __init__(self, transforms_list=[]):
+    transforms_list.append(AP.ToTensorV2())
+    self.transforms = A.Compose(transforms_list)
 
-    L = []
-    L.append('  Step: %s' % format_time(step_time))
-    L.append(' | Tot: %s' % format_time(tot_time))
-    if msg:
-        L.append(' | ' + msg)
 
-    msg = ''.join(L)
-    sys.stdout.write(msg)
-    for i in range(term_width-int(TOTAL_BAR_LENGTH)-len(msg)-3):
-        sys.stdout.write(' ')
+  def __call__(self, img):
+    img = np.array(img)
+    #print(img)
+    return self.transforms(image=img)['image']
 
-    # Go back to the center of the bar.
-    for i in range(term_width-int(TOTAL_BAR_LENGTH/2)+2):
-        sys.stdout.write('\b')
-    sys.stdout.write(' %d/%d ' % (current+1, total))
+  
+  
+def visualize_augmentations(dataset,transforms, idx=0, samples=10, cols=5 ):
+  dataset = copy.deepcopy(dataset)
+  dataset.transform = transforms
+  rows = samples // cols
+  figure, ax = plt.subplots(nrows=rows, ncols=cols, figsize=(12, 6))
+  for i in range(samples):
+      image, _ = dataset[idx]
+      # image = image / 2 + 0.5     # unnormalize
+      image = image * STD[:, None, None] + MEAN[:, None, None]
+      # plt.imshow(x.numpy().transpose(1, 2, 0))
+      ax.ravel()[i].imshow(np.transpose(image, (1, 2, 0)))
+      ax.ravel()[i].set_axis_off()
+  plt.tight_layout()
+  plt.show()
 
-    if current < total-1:
-        sys.stdout.write('\r')
-    else:
-        sys.stdout.write('\n')
-    sys.stdout.flush()
 
-def format_time(seconds):
-    days = int(seconds / 3600/24)
-    seconds = seconds - days*3600*24
-    hours = int(seconds / 3600)
-    seconds = seconds - hours*3600
-    minutes = int(seconds / 60)
-    seconds = seconds - minutes*60
-    secondsf = int(seconds)
-    seconds = seconds - secondsf
-    millis = int(seconds*1000)
+def imshow(img):
+#   img = img / 2 + 0.5     # unnormalize
+  npimg = img.numpy()
+  fig = plt.figure(figsize=(7,7))
+  plt.imshow(np.transpose(npimg, (1, 2, 0)),interpolation='none')
+	
+	
+def data_stats():
+	random.seed(42)	
+	
+	transform = transforms.Compose([transforms.ToTensor()])
+	trainset_ex = torchvision.datasets.CIFAR10(root='./data', train=True,download=True, transform=transform)
+	testset_ex = torchvision.datasets.CIFAR10(root='./data', train=False,download=True, transform=transform)
+	
+	trainloader_ex = torch.utils.data.DataLoader(trainset_ex, batch_size=4, shuffle=True, num_workers=2)
+	
+	data = np.concatenate((trainset_ex.data, testset_ex.data))
 
-    f = ''
-    i = 1
-    if days > 0:
-        f += str(days) + 'D'
-        i += 1
-    if hours > 0 and i <= 2:
-        f += str(hours) + 'h'
-        i += 1
-    if minutes > 0 and i <= 2:
-        f += str(minutes) + 'm'
-        i += 1
-    if secondsf > 0 and i <= 2:
-        f += str(secondsf) + 's'
-        i += 1
-    if millis > 0 and i <= 2:
-        f += str(millis) + 'ms'
-        i += 1
-    if f == '':
-        f = '0ms'
-    return f
+	print('[Whole dataset ]')
+	print(' - Numpy Shape:', data.shape)
+	print(' - min:', np.min(data))
+	print(' - max:', np.max(data))
+	print(' - mean:', np.mean(data))
+	print(' - std:', np.std(data))
+	print(' - var:', np.var(data))
+
+	print('[Per Channel, standardised stats]')
+	print(' - mean:', np.round(data.mean(axis=(0,1,2))/255, 4))
+	print(' - std:', np.round(data.std(axis=(0,1,2))/255, 4))
+ 
+	
+	classes = ('plane', 'car', 'bird', 'cat',
+    	       'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+	
+	# get some random training images
+	dataiter = iter(trainloader_ex)
+	images, labels = dataiter.next()
+
+	# show images
+	imshow(torchvision.utils.make_grid(images))
+	# print labels
+	print(' '.join('%5s' % classes[labels[j]] for j in range(4))) 
+  
+  
+
+def evaluate_accuracy(model, device, testloader,misclassified_images, classes,correct_pred, total_pred):
+    with torch.no_grad():
+        for images, labels in testloader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predictions = torch.max(outputs, 1)
+            # collect the correct predictions for each class
+            for label, prediction in zip(labels, predictions):
+                if label == prediction:
+                    correct_pred[classes[label]] += 1
+                total_pred[classes[label]] += 1
+            for i in range(len(predictions)):
+                if predictions[i]!= labels[i]:
+                    misclassified_images.append([images[i], predictions[i], labels[i]])
+
+		
+		
+def show_misclassified_images(misclassified_images, classes, correct_pred, total_pred): 
+	fig = plt.figure(figsize = (10,10))
+	for i in range(10):
+	  sub = fig.add_subplot(5, 2, i+1)
+	  img = misclassified_images[i][0].cpu()
+	  img = img * STD[:, None, None] + MEAN[:, None, None]
+	  # img = img / 2 + 0.5 
+	  npimg = img.numpy()
+	  plt.imshow(np.transpose(npimg,(1, 2, 0)),interpolation='none')
+
+	  sub.set_title("Pred={}, Act={}".format(str(classes[misclassified_images[i][1].data.cpu().numpy()]),
+						 str(classes[misclassified_images[i][2].data.cpu().numpy()])))
+
+	plt.tight_layout()
+	plt.show()
+
+	# print accuracy for each class
+	for classname, correct_count in correct_pred.items():
+	    accuracy = 100 * float(correct_count) / total_pred[classname]
+	    print("Accuracy for class {:5s} is: {:.1f} %".format(classname,accuracy))
+		
+		
+		
+def plot_loss_accurracy(train_losses,train_accuracy, test_losses,  test_accuracy):
+	fig, axs = plt.subplots(2,2,figsize=(15,12))
+	axs[0, 0].plot(train_losses, label='Training Loss')
+	axs[0, 0].grid(linestyle='-.')
+	axs[0, 0].set_title("Training Loss")
+	axs[0, 0].legend()
+
+	axs[1, 0].plot(train_accuracy, label='Training Accuracy')
+	axs[1, 0].grid(linestyle='-.')
+	axs[1, 0].set_title("Training Accuracy")
+	axs[1, 0].legend()
+
+	axs[0, 1].plot(test_losses, label='Test Loss')
+	axs[0, 1].grid(linestyle='-.')
+	axs[0, 1].set_title("Test Loss")
+	axs[0, 1].legend()
+
+	axs[1, 1].plot(test_accuracy, label='Test Accuracy')
+	axs[1, 1].grid(linestyle='-.')
+	axs[1, 1].set_title("Test Accuracy")
+	axs[1, 1].legend()		
+
+	
+	
+
+class GradCAM:
+    """Calculate GradCAM salinecy map.
+    Args:
+        input: input image with shape of (1, 3, H, W)
+        class_idx (int): class index for calculating GradCAM.
+                If not specified, the class index that makes the highest model prediction score will be used.
+    Return:
+        mask: saliency map of the same spatial dimension with input
+        logit: model output
+    A simple example:
+        # initialize a model, model_dict and gradcam
+        # get an image and normalize with mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
+        img = load_img()
+        normed_img = normalizer(img)
+        # get a GradCAM saliency map on the class index 10.
+        mask, logit = gradcam(normed_img, class_idx=10)
+        # make heatmap from mask and synthesize saliency map using heatmap and img
+        heatmap, cam_result = visualize_cam(mask, img)
+    """
+
+    def __init__(self, model, layer_name):
+        self.model = model
+        # self.layer_name = layer_name
+        self.target_layer = layer_name
+
+        self.gradients = dict()
+        self.activations = dict()
+
+        def backward_hook(module, grad_input, grad_output):
+            self.gradients['value'] = grad_output[0]
+
+        def forward_hook(module, input, output):
+            self.activations['value'] = output
+
+        self.target_layer.register_forward_hook(forward_hook)
+        self.target_layer.register_backward_hook(backward_hook)
+
+    def saliency_map_size(self, *input_size):
+        device = next(self.model.parameters()).device
+        self.model(torch.zeros(1, 3, *input_size, device=device))
+        return self.activations['value'].shape[2:]
+
+    def forward(self, input, class_idx=None, retain_graph=False):
+        b, c, h, w = input.size()
+
+        logit = self.model(input)
+        if class_idx is None:
+            score = logit[:, logit.max(1)[-1]].squeeze()
+        else:
+            score = logit[:, class_idx].squeeze()
+
+        self.model.zero_grad()
+        score.backward(retain_graph=retain_graph)
+        gradients = self.gradients['value']
+        activations = self.activations['value']
+        b, k, u, v = gradients.size()
+
+        alpha = gradients.view(b, k, -1).mean(2)
+        weights = alpha.view(b, k, 1, 1)
+
+        saliency_map = (weights*activations).sum(1, keepdim=True)
+        saliency_map = F.relu(saliency_map)
+        saliency_map = F.upsample(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
+        saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
+        saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
+        
+        self.gradients.clear()
+        self.activations.clear()
+        return saliency_map, logit
+    def __call__(self, input, class_idx=None, retain_graph=False):
+        return self.forward(input, class_idx, retain_graph)
+
+
+
+
+
+# ------------------------------------VISUALIZE_GRADCAM-------------------------------------------------------------
+def visualize_cam(mask, img, alpha=1.0):
+    """Make heatmap from mask and synthesize GradCAM result image using heatmap and img.
+    Args:
+        mask (torch.tensor): mask shape of (1, 1, H, W) and each element has value in range [0, 1]
+        img (torch.tensor): img shape of (1, 3, H, W) and each pixel value is in range [0, 1]
+    Return:
+        heatmap (torch.tensor): heatmap img shape of (3, H, W)
+        result (torch.tensor): synthesized GradCAM result of same shape with heatmap.
+    """
+    heatmap = (255 * mask.squeeze()).type(torch.uint8).cpu().numpy()
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = torch.from_numpy(heatmap).permute(2, 0, 1).float().div(255)
+    b, g, r = heatmap.split(1)
+    heatmap = torch.cat([r, g, b]) * alpha
+
+    result = heatmap+img.cpu()
+    result = result.div(result.max()).squeeze()
+
+    return heatmap, result
+
+#-------------------------------------------GradCam View (Initialisation)--------------------------------------------
+
+def GradCamView(miscalssified_images,model,classes,layers,Figsize = (20,20),subplotx1 = 5, subplotx2 = 2):
+
+    fig = plt.figure(figsize=Figsize)
+    for i in range(10):
+        images1 = [miscalssified_images[i][0].cpu()* STD[:, None, None]+MEAN[:, None, None]]
+        images2 =  [miscalssified_images[i][0].cpu()* STD[:, None, None]+MEAN[:, None, None]]
+        for j in layers:
+                g = GradCAM(model,j)
+                mask, _= g(miscalssified_images[i][0].clone().unsqueeze_(0))
+                heatmap, result = visualize_cam(mask,miscalssified_images[i][0].clone().unsqueeze_(0)* STD[:, None, None].to(device)+MEAN[:, None, None].to(device) )
+                images1.extend([heatmap])
+                images2.extend([result])
+        # Ploting the images one by one
+        grid_image = make_grid(images1+images2,nrow=len(layers)+1,pad_value=1)
+        npimg = grid_image.numpy()
+        sub = fig.add_subplot(subplotx1, subplotx2, i+1) 
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
+        sub.set_title('P = '+classes[int(miscalssified_images[i][1])]+" A = "+classes[int(miscalssified_images[i][2])],fontweight="bold",fontsize=14)
+        sub.axis("off")
+        plt.tight_layout()
+        fig.subplots_adjust(wspace=0)
+
+
