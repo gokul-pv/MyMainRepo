@@ -1,10 +1,14 @@
 import torch
+import torchvision
 from torchvision import transforms
+
 import albumentations as A
 import albumentations.pytorch as AP
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
+
+
 
 class AlbumentationTransforms:
 
@@ -42,13 +46,7 @@ def visualize_augmentations(dataset,transforms, idx=0, samples=10, cols=5 ):
   plt.show()
 
   
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-import torchvision
 
-
-# functions to show an image
 def imshow(img,c ):
 #   img = img / 2 + 0.5     # unnormalize
   npimg = img.numpy()
@@ -57,9 +55,7 @@ def imshow(img,c ):
   plt.title(c)
 
 
-def show_train_data(dataset, classes):
-
-	# get some random training images
+def show_train_data(dataset, classes):	
   dataiter = iter(dataset)
   images, labels = dataiter.next()
   for i in range(10):
@@ -76,14 +72,14 @@ def evaluate_accuracy(model, device, test_loader):
 	    images, labels = images.to(device), labels.to(device)
 	    outputs = model(images)
 	    _, predicted = torch.max(outputs.data, 1)
-	  # collect the correct predictions for each class
-	for label, prediction in zip(labels, predictions):
-	    if label == prediction:
-		correct_pred[classes[label]] += 1
-	    total_pred[classes[label]] += 1
-	for i in range(len(predictions)):
-	    if predictions[i]!= labels[i]:
-		misclassified_images.append([images[i], predictions[i], labels[i]])
+	    # collect the correct predictions for each class
+	    for label, prediction in zip(labels, predictions):
+	        if label == prediction:
+                correct_pred[classes[label]] += 1
+	        total_pred[classes[label]] += 1
+	    for i in range(len(predictions)):
+	        if predictions[i]!= labels[i]:
+                misclassified_images.append([images[i], predictions[i], labels[i]])
 
 		
 		
