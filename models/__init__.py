@@ -1,3 +1,3 @@
 from .resnet import *
 from .sampleModel import *
-from .CustomResnet import *
+from .customResnet import *
