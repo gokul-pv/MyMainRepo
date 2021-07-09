@@ -2,6 +2,9 @@
 Deep Residual Learning for Image Recognition <https://arxiv.org/pdf/1512.03385.pdf>
 '''
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 class BasicBlock(nn.Module):
     expansion = 1
