@@ -39,7 +39,7 @@ def load(train_transform,test_transform,batch_size):
 
 #Training & Testing Loops
 
-def train(model, device, train_loader, optimizer, criterion, epoch, train_losses, train_accuracy):
+def train(model, device, train_loader, optimizer, scheduler,criterion, epoch, train_losses, train_accuracy):
   model.train()
   
   correct = 0
@@ -66,7 +66,8 @@ def train(model, device, train_loader, optimizer, criterion, epoch, train_losses
     # Backpropagation
     loss.backward()
     optimizer.step()
-
+    scheduler.step()
+	
     # Update pbar-tqdm
     
     pred = y_pred.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
