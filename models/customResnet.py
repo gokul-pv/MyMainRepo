@@ -88,4 +88,4 @@ class ResNet(nn.Module):
         return outX
 
 def ResNet_custom():
-    return ResNet(BasicBlock, [2, 2])
+    return ResNet(BasicBlock, [1, 1])
