@@ -64,9 +64,7 @@ def imshow(img):
   plt.imshow(np.transpose(npimg, (1, 2, 0)),interpolation='none')
 	
 	
-def data_stats():
-	random.seed(42)	
-	
+def data_stats():	
 	transform = transforms.Compose([transforms.ToTensor()])
 	trainset_ex = torchvision.datasets.CIFAR10(root='./data', train=True,download=True, transform=transform)
 	testset_ex = torchvision.datasets.CIFAR10(root='./data', train=False,download=True, transform=transform)
