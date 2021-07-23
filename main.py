@@ -51,7 +51,7 @@ if cuda:
     torch.cuda.manual_seed(SEED)
 
 # dataloader arguments - something you'll fetch these from cmdprmt
-dataloader_args = dict(shuffle=True, batch_size=256, num_workers=4, pin_memory=True) if cuda else dict(shuffle=True, batch_size=64)
+dataloader_args = dict(shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) if cuda else dict(shuffle=True, batch_size=64)
 
 trainloader = torch.utils.data.DataLoader(train_dataset, **dataloader_args)
 testloader = torch.utils.data.DataLoader(test_dataset, **dataloader_args)
