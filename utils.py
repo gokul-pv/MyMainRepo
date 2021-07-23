@@ -20,8 +20,11 @@ import matplotlib.pyplot as plt
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-MEAN = torch.tensor([0.485, 0.456, 0.406])
-STD = torch.tensor([0.229, 0.224, 0.225])
+# MEAN = torch.tensor([0.485, 0.456, 0.406])
+# STD = torch.tensor([0.229, 0.224, 0.225])
+
+MEAN = torch.tensor([0.442,0.442,0.442])
+STD = torch.tensor([0.278, 0.278, 0.278])
 
 class AlbumentationTransforms:
 
@@ -118,7 +121,7 @@ def evaluate_accuracy(model, device, testloader,misclassified_images, classes,co
 		
 		
 def show_misclassified_images(misclassified_images, classes, correct_pred, total_pred): 
-	fig = plt.figure(figsize = (10,10))
+	fig = plt.figure(figsize = (20,15))
 	for i in range(10):
 	  sub = fig.add_subplot(5, 2, i+1)
 	  img = misclassified_images[i][0].cpu()
