@@ -5,7 +5,7 @@ import torchvision
 import torchvision.transforms as transforms
 from tqdm import tqdm
 
-def load(train_transform,test_transform,batch_size):
+def load_cifar(train_transform,test_transform,batch_size):
 	
 
 	#Get the Train and Test Set
@@ -35,6 +35,27 @@ def load(train_transform,test_transform,batch_size):
     	       'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 	return classes, trainloader, testloader
+
+def load(train_transform,test_transform,batch_size):		
+
+SEED = 1
+
+# CUDA?
+cuda = torch.cuda.is_available()
+print("CUDA Available?", cuda)
+
+# For reproducibility
+torch.manual_seed(SEED)
+
+if cuda:
+    torch.cuda.manual_seed(SEED)
+
+# dataloader arguments - something you'll fetch these from cmdprmt
+dataloader_args = dict(shuffle=True, batch_size=256, num_workers=4, pin_memory=True) if cuda else dict(shuffle=True, batch_size=64)
+
+trainloader = torch.utils.data.DataLoader(train_dataset, **dataloader_args)
+testloader = torch.utils.data.DataLoader(test_dataset, **dataloader_args)
+return trainloader, testloader
 
 
 #Training & Testing Loops
