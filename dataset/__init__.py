@@ -1,1 +1,1 @@
-from .tinImageNet import *
+from .tinyImageNet import *
