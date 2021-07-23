@@ -36,7 +36,7 @@ def load_cifar(train_transform,test_transform,batch_size):
 
 	return classes, trainloader, testloader
 
-def load(train_transform,test_transform,batch_size):		
+def load(train_dataset,test_dataset,batch_size):		
 
 	SEED = 1
 
